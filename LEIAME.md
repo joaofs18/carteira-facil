@@ -1,6 +1,6 @@
-# Carteira Fácil (versão 2, rede de teste)
+# Carteira Fácil (versão 2)
 
-App web pra pagar e receber "reais de teste" (tBRL) entre a família, na rede de teste Polygon Amoy.
+App web pra pagar e receber "reais de teste" (tBRL) entre a família, na rede Polygon (gás de verdade, moeda de teste).
 O dinheiro **não tem valor**. Serve pra testar o funcionamento real antes de usar dinheiro de verdade.
 
 ## Como funciona
@@ -15,6 +15,6 @@ O dinheiro **não tem valor**. Serve pra testar o funcionamento real antes de us
 - `lib/`: bibliotecas (ethers, QR code, leitor de QR)
 
 ## Avisos
-- O link de convite carrega a chave do tanque de gás. Isso só é aceitável em rede de teste.
+- O link de convite carrega a chave do tanque de gás. Mande só para a família: quem tiver o link pode gastar o POL do tanque.
   Na versão com dinheiro real, o tanque vira um "paymaster" (serviço patrocinador) e o convite não leva chave nenhuma.
 - Se alguém trocar de celular sem as 12 palavras, perde a carteira.

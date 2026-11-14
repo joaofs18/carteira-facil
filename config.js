@@ -1,19 +1,20 @@
-// Configuração da rede. Por enquanto: Polygon Amoy (rede de TESTE, dinheiro sem valor).
+// Configuração da rede.
+// Rede principal da Polygon: o GÁS é POL de verdade (centavos por pagamento),
+// mas a MOEDA da família continua sendo de teste (tBRL, sem valor).
 window.CONFIG = {
-  nomeRede: 'Polygon Amoy (teste)',
-  chainId: 80002,
+  nomeRede: 'Polygon (gás real, moeda de teste)',
+  chainId: 137,
   rpcs: [
-    'https://rpc-amoy.polygon.technology',
-    'https://polygon-amoy-bor-rpc.publicnode.com',
-    'https://polygon-amoy.api.onfinality.io/public'
+    'https://polygon-bor-rpc.publicnode.com',
+    'https://polygon-rpc.com',
+    'https://1rpc.io/matic'
   ],
-  explorer: 'https://amoy.polygonscan.com',
-  // Gorjeta mínima de gás aceita pela rede Amoy (em gwei)
+  explorer: 'https://polygonscan.com',
+  // Gorjeta mínima de gás aceita pela rede Polygon (em gwei)
   gorjetaMinGwei: 30,
-  // Quando o gás da família ficar abaixo disso (em POL), o organizador recebe aviso
-  avisoGasPOL: 0.02,
-  faucets: [
-    {nome:'Alchemy', url:'https://www.alchemy.com/faucets/polygon-amoy'},
-    {nome:'QuickNode', url:'https://faucet.quicknode.com/polygon/amoy'}
-  ]
+  // POL necessário para criar a moeda da família
+  minimoCriarPOL: 0.1,
+  // Quando o gás da família ficar abaixo disso (em POL), aparece aviso
+  avisoGasPOL: 0.2,
+  comoRecarregar: 'Compre POL numa corretora (ex.: Mercado Bitcoin) e envie para este endereço escolhendo a rede <b>Polygon</b>. R$ 5 a R$ 10 já dão para muitos pagamentos.'
 };

@@ -220,7 +220,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'
 const app = document.getElementById('app');
 let view = { name:'inicio' };
 function go(name, data={}){ pararCamera(); view = { name, ...data }; render(); window.scrollTo(0,0); }
-const BANNER = `<div class="test-banner">🧪 REDE DE TESTE — dinheiro sem valor</div>`;
+const BANNER = `<div class="test-banner">🧪 MODO TESTE — dinheiro sem valor</div>`;
 function header(t, voltar='home'){
   return BANNER + `<div class="screen-title"><button class="back" data-go="${voltar}" aria-label="Voltar">⬅️</button><h1>${t}</h1></div>`;
 }
@@ -307,13 +307,12 @@ TELAS.criarFamilia = () => {
   const t = LS.get('tanqueNovo');
   return header('Criar família','boasVindas') + `
   <div class="card"><h2>⛽ Passo 1: gás da família</h2>
-    <p>A família precisa de um pouco de <b>POL de teste</b> (grátis) para pagar as taxas da rede. Os parentes nunca vão precisar disso: o app paga por eles.</p>
+    <p>A família precisa de um pouco de <b>POL</b> para pagar as taxas da rede (centavos por pagamento). Os parentes nunca vão precisar disso: o app paga por eles.</p>
     <div class="step"><div class="n">1</div><div>Copie o endereço abaixo</div></div>
     <div class="qr-wrap" style="padding:12px"><div data-qr="${t.endereco}"></div>
       <div class="addr" style="font-size:13px">${t.endereco}</div>
       <button class="btn-sec" data-copiar="${t.endereco}">📋 Copiar endereço</button></div>
-    <div class="step"><div class="n">2</div><div>Peça POL de teste em um destes sites (cole o endereço):<br>
-      ${C.faucets.map(f=>`<a class="link" href="${f.url}" target="_blank" rel="noopener">${f.nome}</a>`).join(' · ')}</div></div>
+    <div class="step"><div class="n">2</div><div>${C.comoRecarregar}</div></div>
     <div class="step"><div class="n">3</div><div>Espere aparecer aqui:</div></div>
     <div class="center" style="font-size:28px;font-weight:900" id="gasNovo">… POL</div>
   </div>
@@ -415,7 +414,7 @@ TELAS.tirarConfirmar = () => header('Confirmar','tirar') + `
   <div class="confirm-row"><button class="no" data-go="home">✖<small>Não</small></button>
     <button class="yes" data-act="tirarConfirmar">✔<small>Sim, tirar</small></button></div>`;
 
-TELAS.enviando = () => BANNER + `<div class="success"><div class="spin"></div><h2>${esc(view.texto||'Enviando…')}</h2><p class="hint">Gravando na blockchain de teste. Leva alguns segundos.</p></div>`;
+TELAS.enviando = () => BANNER + `<div class="success"><div class="spin"></div><h2>${esc(view.texto||'Enviando…')}</h2><p class="hint">Gravando na blockchain. Leva alguns segundos.</p></div>`;
 
 TELAS.sucesso = () => {
   const mapa = { pagar:{c:'var(--green)',t:'Pago!',s:`para ${esc(membro(view.para)?.nome||'')}`},
@@ -424,7 +423,7 @@ TELAS.sucesso = () => {
   return BANNER + `<div class="success">
     <div class="tick" style="background:${mapa.c}">✔</div><h2>${mapa.t}</h2>
     <div class="val">${brl(view.valor)}</div><div style="font-size:20px;font-weight:800">${mapa.s}</div>
-    <div class="chain">⛓️ Gravado na blockchain de teste<br><a class="link" href="${C.explorer}/tx/${view.hash}" target="_blank" rel="noopener"><code>${view.hash}</code></a></div>
+    <div class="chain">⛓️ Gravado na blockchain<br><a class="link" href="${C.explorer}/tx/${view.hash}" target="_blank" rel="noopener"><code>${view.hash}</code></a></div>
     <button class="wide b-blue" data-go="home">🏠 Voltar ao início</button></div>`;
 };
 
@@ -453,7 +452,7 @@ TELAS.extrato = () => header('Entrou e saiu') +
 TELAS.detalhe = () => {
   const t = cache.historico.find(x=>x.id===view.id);
   return header('Detalhe','extrato') + `<div class="confirm-card">${linhaTx(t).replace('<button','<div').replace(/<\/button>$/,'</div>')}
-    <div class="chain" style="margin-top:10px">⛓️ Registro na blockchain de teste<br><a class="link" href="${C.explorer}/tx/${t.hash}" target="_blank" rel="noopener"><code>${t.hash}</code></a></div></div>
+    <div class="chain" style="margin-top:10px">⛓️ Registro na blockchain<br><a class="link" href="${C.explorer}/tx/${t.hash}" target="_blank" rel="noopener"><code>${t.hash}</code></a></div></div>
     <button class="speak" style="margin:14px auto 0;display:flex" data-act="ouvirTx">🔊 Ouvir</button>`;
 };
 
@@ -489,10 +488,10 @@ TELAS.gas = () => header('Gás da família','mais') + `
     <p>É daqui que sai a taxa de cada pagamento. Ninguém da família precisa ter POL.</p>
     <div class="center" style="font-size:30px;font-weight:900" id="gasTanque">…</div>
     <div class="center hint" id="gasPagamentos"></div></div>
-  <div class="card"><h2>Recarregar (grátis, rede de teste)</h2>
+  <div class="card"><h2>Recarregar</h2>
     <div class="qr-wrap" style="padding:12px"><div data-qr="${tank.address}"></div><div class="addr">${tank.address}</div>
     <button class="btn-sec" data-copiar="${tank.address}">📋 Copiar endereço</button></div>
-    <p>Cole em: ${C.faucets.map(f=>`<a class="link" href="${f.url}" target="_blank" rel="noopener">${f.nome}</a>`).join(' · ')}</p></div>`;
+    <p>${C.comoRecarregar}</p></div>`;
 
 /* ---------- ações pós-render ---------- */
 const POS = {};
@@ -606,7 +605,7 @@ async function vigiarGasNovo(){
     const t = LS.get('tanqueNovo');
     const b = Number(ethers.formatEther(await provider.getBalance(t.endereco)));
     const el = document.getElementById('gasNovo'); if (el) el.textContent = b.toFixed(4) + ' POL';
-    const btn = document.getElementById('btnCriar'); if (btn) btn.disabled = b < 0.05;
+    const btn = document.getElementById('btnCriar'); if (btn) btn.disabled = b < (C.minimoCriarPOL || 0.1);
   }catch(e){ const el=document.getElementById('gasNovo'); if(el) el.textContent='sem conexão…'; }
   vigiaGas = setTimeout(vigiarGasNovo, 5000);
 }
@@ -646,7 +645,7 @@ const ACOES = {
   async criarMoeda(b){
     b.disabled = true;
     const box = document.getElementById('criando');
-    box.innerHTML = '<div class="spin"></div><p class="hint">Criando a moeda na blockchain de teste…</p>';
+    box.innerHTML = '<div class="spin"></div><p class="hint">Criando a moeda na blockchain…</p>';
     try{
       await conectar();
       const t = LS.get('tanqueNovo');
