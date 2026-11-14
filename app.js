@@ -12,6 +12,7 @@ const C = window.CONFIG;
 const ABI = window.CONTRATO.abi;
 const BYTECODE = window.CONTRATO.bytecode;
 const OP = { PAGAR:1, COLOCAR:2, TIRAR:3, CADASTRAR:4 };
+const VERSAO = 'v3';
 
 /* ---------- parâmetros de teste (só para desenvolvimento local) ---------- */
 const params = new URLSearchParams(location.search);
@@ -50,7 +51,9 @@ function erroDeServidor(e){
   const m = ((e && (e.shortMessage || e.message)) || '').toLowerCase();
   return /server response (4|5)\d\d|403|429|forbidden|rate limit|too many|failed to fetch|network|missing response|timeout|tempo|bad response|cors|unsupported method|method not (allowed|found)/.test(m);
 }
+const falhasServidor = [];
 async function trocarServidor(){
+  falhasServidor.push(C.rpcs[rpcInicio]);
   rpcInicio = (rpcInicio + 1) % C.rpcs.length;
   provider = null;
   await prepararContas();
@@ -236,7 +239,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'
 const app = document.getElementById('app');
 let view = { name:'inicio' };
 function go(name, data={}){ pararCamera(); view = { name, ...data }; render(); window.scrollTo(0,0); }
-const BANNER = `<div class="test-banner">🧪 MODO TESTE — dinheiro sem valor</div>`;
+const BANNER = `<div class="test-banner">🧪 MODO TESTE — dinheiro sem valor · ${VERSAO}</div>`;
 function header(t, voltar='home'){
   return BANNER + `<div class="screen-title"><button class="back" data-go="${voltar}" aria-label="Voltar">⬅️</button><h1>${t}</h1></div>`;
 }
@@ -684,7 +687,7 @@ const ACOES = {
             if (!pend && (await provider.getTransactionCount(w.address)) === 0){ hash = null; LS.del('criacaoHash'); }
           }
         }catch(e){
-          if (erroDeServidor(e)){ provider = null; rpcInicio = (rpcInicio+1) % C.rpcs.length; await conectar(); continue; }
+          if (erroDeServidor(e)){ falhasServidor.push(C.rpcs[rpcInicio].replace('https://','') + ': ' + (e.shortMessage||e.message||'').slice(0,40)); provider = null; rpcInicio = (rpcInicio+1) % C.rpcs.length; await conectar(); continue; }
           throw e;
         }
       }
@@ -695,7 +698,7 @@ const ACOES = {
       moeda(); falar('Família criada! Agora diga quem é você.');
       go('cadastro');
     }catch(e){
-      box.innerHTML = `<p class="err">${esc(traduzErro(e).message)}</p>`; b.disabled=false;
+      box.innerHTML = `<p class="err">${esc(traduzErro(e).message)}</p>` + (falhasServidor.length? `<p class="hint" style="font-size:12px;text-align:left">${falhasServidor.map(esc).join('<br>')}</p>`:''); b.disabled=false;
     }
   },
   async cadastrar(b){
