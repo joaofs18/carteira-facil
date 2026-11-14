@@ -1,0 +1,9 @@
+{
+  "name": "Carteira Fácil",
+  "short_name": "Carteira Fácil",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f1ea",
+  "theme_color": "#f4f1ea",
+  "icons": [{"src": "icone.svg", "sizes": "any", "type": "image/svg+xml"}]
+}
