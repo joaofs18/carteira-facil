@@ -12,7 +12,7 @@ const C = window.CONFIG;
 const ABI = window.CONTRATO.abi;
 const BYTECODE = window.CONTRATO.bytecode;
 const OP = { PAGAR:1, COLOCAR:2, TIRAR:3, CADASTRAR:4 };
-const VERSAO = 'v3';
+const VERSAO = 'v4';
 
 /* ---------- parâmetros de teste (só para desenvolvimento local) ---------- */
 const params = new URLSearchParams(location.search);
@@ -255,9 +255,16 @@ function render(){
   } else if (!eu){
     if (!['cadastro','recuperar'].includes(view.name)) view = { name:'cadastro' };
   } else if (view.name==='inicio' || !TELAS[view.name]) view = { name:'home' };
-  app.innerHTML = TELAS[view.name]();
-  ligar();
-  if (POS[view.name]) POS[view.name]();
+  try{
+    app.innerHTML = TELAS[view.name]();
+    ligar();
+    if (POS[view.name]) POS[view.name]();
+  }catch(e){
+    console.error('tela', view.name, e);
+    app.innerHTML = BANNER + `<div class="success"><div class="tick" style="background:var(--red)">!</div>
+      <h2>Algo deu errado</h2><p class="hint">${esc(view.name)}: ${esc(e.message||e)}</p>
+      <button class="wide b-blue" onclick="location.reload()">🔄 Tentar de novo</button></div>`;
+  }
 }
 function ligar(){
   app.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
@@ -532,6 +539,7 @@ POS.gas = async () => {
 };
 
 async function atualizarHome(){
+  if (!token || !carteira || !provider) return;
   try{
     const s = await lerSaldo();
     saldoAtual = s;
@@ -812,6 +820,7 @@ function iniciarVigia(){
 async function iniciar(){
   try{ speechSynthesis.getVoices(); }catch(e){}
   if (!LS.get('tanqueNovo')){ const w = ethers.Wallet.createRandom(); LS.set('tanqueNovo', { chave: w.privateKey, endereco: w.address }); }
+  try{ if (eu && eu.frase && !carteira) carteira = ethers.Wallet.fromPhrase(eu.frase); }catch(e){ console.warn('carteira', e); }
   const temConvite = aplicarConviteDaURL();
   render();
   if (temConvite) return;
