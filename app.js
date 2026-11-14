@@ -15,7 +15,7 @@ const OP = { PAGAR:1, COLOCAR:2, TIRAR:3, CADASTRAR:4 };
 
 /* ---------- parâmetros de teste (só para desenvolvimento local) ---------- */
 const params = new URLSearchParams(location.search);
-if (params.get('rpc')) { C.rpcs = [params.get('rpc')]; }
+if (params.get('rpc')) { C.rpcs = params.get('rpc').split(','); }
 if (params.get('chain')) { C.chainId = Number(params.get('chain')); }
 
 /* ---------- armazenamento local ---------- */
@@ -31,22 +31,36 @@ function salvarCache(){ LS.set('cache', cache); }
 
 /* ---------- rede ---------- */
 let provider = null, token = null, tank = null, carteira = null;
+let rpcInicio = 0;
 async function conectar(){
   if (provider) return provider;
-  for (const url of C.rpcs){
+  const n = C.rpcs.length;
+  for (let i=0; i<n; i++){
+    const idx = (rpcInicio + i) % n, url = C.rpcs[idx];
     try{
-      const p = new ethers.JsonRpcProvider(url, C.chainId, { staticNetwork: true });
+      const p = new ethers.JsonRpcProvider(url, C.chainId, { staticNetwork: true, batchMaxCount: 1 });
       await Promise.race([p.getBlockNumber(), new Promise((_,r)=>setTimeout(()=>r(new Error('tempo')),8000))]);
-      provider = p; return p;
+      provider = p; rpcInicio = idx; return p;
     }catch(e){ console.warn('RPC falhou', url, e.message); }
   }
-  throw new Error('Sem internet ou a rede de teste não respondeu.');
+  throw new Error('Sem internet ou a rede não respondeu.');
+}
+// Erro do servidor da rede (não da transação): vale tentar outro servidor
+function erroDeServidor(e){
+  const m = ((e && (e.shortMessage || e.message)) || '').toLowerCase();
+  return /server response (4|5)\d\d|403|429|forbidden|rate limit|too many|failed to fetch|network|missing response|timeout|tempo|bad response|cors|unsupported method|method not (allowed|found)/.test(m);
+}
+async function trocarServidor(){
+  rpcInicio = (rpcInicio + 1) % C.rpcs.length;
+  provider = null;
+  await prepararContas();
 }
 async function prepararContas(){
   await conectar();
   if (fam && fam.tankKey) tank = new ethers.Wallet(fam.tankKey, provider);
   if (fam && fam.token) token = new ethers.Contract(fam.token, ABI, tank || provider);
   if (eu && eu.frase) carteira = ethers.Wallet.fromPhrase(eu.frase);
+  return provider;
 }
 async function taxas(){
   const gorjeta = ethers.parseUnits(String(C.gorjetaMinGwei), 'gwei');
@@ -62,7 +76,8 @@ async function enviarPedido(op, para, valorReais, nome='', emoji=''){
   if (!token || !tank || !carteira) throw new Error('Carteira não preparada');
   const valor = ethers.parseUnits(Number(valorReais||0).toFixed(2), 18);
   const destino = para || ethers.ZeroAddress;
-  for (let tentativa=0; tentativa<4; tentativa++){
+  const limite = C.rpcs.length + 3;
+  for (let tentativa=0; tentativa<=limite; tentativa++){
     try{
       const nonce = await token.nonces(carteira.address);
       const h = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(
@@ -77,7 +92,8 @@ async function enviarPedido(op, para, valorReais, nome='', emoji=''){
     }catch(e){
       const m = (e.shortMessage || e.message || '').toLowerCase();
       const repetir = m.includes('nonce') || m.includes('replacement') || m.includes('already known') || m.includes('underpriced');
-      if (repetir && tentativa < 3){ await espera(1500 + Math.random()*1500); continue; }
+      if (repetir && tentativa < limite){ await espera(1500 + Math.random()*1500); continue; }
+      if (erroDeServidor(e) && tentativa < limite){ await trocarServidor().catch(()=>{}); continue; }
       throw traduzErro(e);
     }
   }
@@ -88,7 +104,7 @@ function traduzErro(e){
   if (m.includes('saldo insuficiente')) return new Error('Saldo insuficiente.');
   if (m.includes('destino nao e da familia')) return new Error('Essa pessoa não é da família no app.');
   if (m.includes('limite')) return new Error('Valor acima do limite de teste (R$ 1.000).');
-  if (m.includes('network') || m.includes('fetch') || m.includes('timeout') || m.includes('tempo')) return new Error('Sem conexão. Tente de novo.');
+  if (m.includes('network') || m.includes('fetch') || m.includes('timeout') || m.includes('tempo') || m.includes('server response')) return new Error('A rede não respondeu. Espere um pouco e tente de novo.');
   return new Error('Não deu certo: ' + (e.shortMessage || e.reason || e.message || 'erro').slice(0,120));
 }
 const espera = ms => new Promise(r=>setTimeout(r,ms));
@@ -649,12 +665,32 @@ const ACOES = {
     try{
       await conectar();
       const t = LS.get('tanqueNovo');
-      const w = new ethers.Wallet(t.chave, provider);
-      const f = new ethers.ContractFactory(ABI, BYTECODE, w);
-      const c = await f.deploy(await taxas());
-      await c.waitForDeployment();
-      fam = { token: await c.getAddress(), tankKey: t.chave, organizador: true };
-      LS.set('familia', fam); LS.del('tanqueNovo');
+      let hash = LS.get('criacaoHash');
+      let rec = null;
+      for (let tentativa=0; tentativa<=C.rpcs.length+1 && !rec; tentativa++){
+        try{
+          if (!hash){
+            const w = new ethers.Wallet(t.chave, provider);
+            const f = new ethers.ContractFactory(ABI, BYTECODE, w);
+            const dtx = await f.getDeployTransaction();
+            const tx = await w.sendTransaction({ ...dtx, ...(await taxas()) });
+            hash = tx.hash; LS.set('criacaoHash', hash);
+          }
+          rec = await provider.waitForTransaction(hash, 1, 180000);
+          if (!rec){
+            // Transação sumiu (não foi aceita): tenta enviar de novo
+            const w = new ethers.Wallet(t.chave, provider);
+            const pend = await provider.getTransaction(hash).catch(()=>null);
+            if (!pend && (await provider.getTransactionCount(w.address)) === 0){ hash = null; LS.del('criacaoHash'); }
+          }
+        }catch(e){
+          if (erroDeServidor(e)){ provider = null; rpcInicio = (rpcInicio+1) % C.rpcs.length; await conectar(); continue; }
+          throw e;
+        }
+      }
+      if (!rec || rec.status !== 1 || !rec.contractAddress){ LS.del('criacaoHash'); throw new Error('A criação da moeda falhou. Tente de novo.'); }
+      fam = { token: rec.contractAddress, tankKey: t.chave, organizador: true };
+      LS.set('familia', fam); LS.del('tanqueNovo'); LS.del('criacaoHash');
       provider=null; await prepararContas();
       moeda(); falar('Família criada! Agora diga quem é você.');
       go('cadastro');

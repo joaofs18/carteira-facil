@@ -4,10 +4,13 @@
 window.CONFIG = {
   nomeRede: 'Polygon (gás real, moeda de teste)',
   chainId: 137,
+  // Servidores públicos da rede. Se um recusar, o app tenta o próximo.
   rpcs: [
-    'https://polygon-bor-rpc.publicnode.com',
+    'https://polygon.drpc.org',
     'https://polygon-rpc.com',
-    'https://1rpc.io/matic'
+    'https://1rpc.io/matic',
+    'https://polygon-public.nodies.app',
+    'https://polygon-bor-rpc.publicnode.com'
   ],
   explorer: 'https://polygonscan.com',
   // Gorjeta mínima de gás aceita pela rede Polygon (em gwei)
